@@ -290,12 +290,21 @@ if ($view === 'products' && !empty($_GET['edit_product'])) {
 $employees = $pdo->query('SELECT * FROM employees WHERE active = 1 ORDER BY name')->fetchAll();
 $products = $pdo->query('SELECT *, 1 AS stock, 0 AS minimum_stock FROM products WHERE active = 1 ORDER BY name')->fetchAll();
 $branches = $pdo->query('SELECT DISTINCT branch FROM employees WHERE active = 1 AND branch <> "" ORDER BY branch')->fetchAll(PDO::FETCH_COLUMN);
+$lowStockProducts = [];
+foreach ($products as $product) {
+    $stock = (int) ($product['stock'] ?? 0);
+    $minimumStock = (int) ($product['minimum_stock'] ?? 0);
+    if ($minimumStock > 0 && $stock <= $minimumStock) {
+        $lowStockProducts[] = $product;
+    }
+}
 $stats = [
     'employees' => (int) $pdo->query('SELECT COUNT(*) FROM employees WHERE active = 1')->fetchColumn(),
     'products' => (int) $pdo->query('SELECT COUNT(*) FROM products WHERE active = 1')->fetchColumn(),
     'deliveries' => (int) $pdo->query('SELECT COUNT(*) FROM deliveries')->fetchColumn(),
     'units_delivered' => (int) $pdo->query('SELECT COALESCE(SUM(quantity), 0) FROM deliveries')->fetchColumn(),
     'branches' => (int) $pdo->query('SELECT COUNT(DISTINCT delivery_branch) FROM deliveries')->fetchColumn(),
+    'low_stock' => count($lowStockProducts),
 ];
 
 $historyStatement = $pdo->prepare('SELECT d.*, e.name AS employee_name, e.national_id, CONCAT(e.department, " · Sucursal: ", d.delivery_branch) AS department, p.name AS product_name, p.sku, u.full_name AS sender_name FROM deliveries d JOIN employees e ON e.id = d.employee_id JOIN products p ON p.id = d.product_id LEFT JOIN users u ON u.id = d.delivered_by_user_id WHERE (:employee_filter = 0 OR d.employee_id = :employee_filter_value) AND (:search_name = "" OR e.name LIKE :employee_search OR e.national_id LIKE :employee_id_search OR p.name LIKE :product_search OR p.sku LIKE :sku_search OR d.delivery_branch LIKE :branch_search OR u.full_name LIKE :sender_search) AND (:date_from = "" OR d.delivered_at >= :date_from_value) AND (:date_to = "" OR d.delivered_at < DATE_ADD(:date_to_value, INTERVAL 1 DAY)) ORDER BY d.delivered_at DESC LIMIT 100');
@@ -315,7 +324,6 @@ $historyStatement->execute([
     'date_to_value' => $dateTo,
 ]);
 $history = $historyStatement->fetchAll();
-$lowStockProducts = [];
 ?>
 <!doctype html>
 <html lang="es">

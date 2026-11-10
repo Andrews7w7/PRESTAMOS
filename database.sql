@@ -52,5 +52,5 @@ CREATE TABLE deliveries (
     INDEX idx_deliveries_user (delivered_by_user_id)
 ) ENGINE=InnoDB;
 
-INSERT INTO users (username, password_hash, full_name) VALUES
-('admin', '$2y$10$mDxY0QqYqzzGBQAbsRaAOOawy2d4hpvD4XDWdTlihInQG.XNVsgom', 'Administrador Titanio', 'superadmin', 1, 1, 1, 1);
+INSERT INTO users (username, password_hash, full_name, role, can_deliver, can_view_history, can_manage_catalog, can_manage_users, active) VALUES
+('admin', '$2y$10$mDxY0QqYqzzGBQAbsRaAOOawy2d4hpvD4XDWdTlihInQG.XNVsgom', 'Administrador Titanio', 'superadmin', 1, 1, 1, 1, 1);
